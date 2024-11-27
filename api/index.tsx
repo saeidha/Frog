@@ -1,8 +1,9 @@
-import { Button, Frog, TextInput } from 'frog'
+import { Button, Frog, TextInput, parseEther } from 'frog'
 import { devtools } from 'frog/dev'
 // import { neynar } from 'frog/hubs'
 import { handle } from 'frog/next'
 import { serveStatic } from 'frog/serve-static'
+import { abi } from './abi.js'
 
 // Uncomment to use Edge Runtime.
 // export const config = {
@@ -21,7 +22,9 @@ app.frame('/', (c) => {
   const { buttonValue, inputText, status } = c
   const fruit = inputText || buttonValue
   return c.res({
+    action: '/send',
     image: (
+      
       <div
         style={{
           alignItems: 'center',
@@ -60,12 +63,74 @@ app.frame('/', (c) => {
     intents: [
       <TextInput placeholder="Enter custom fruit..." />,
       <Button value="apples">Apples</Button>,
-      <Button value="oranges">Oranges</Button>,
+      <Button.Link href="https://google.com">Google</Button.Link>,
       <Button value="bananas">Bananas</Button>,
       status === 'response' && <Button.Reset>Reset</Button.Reset>,
+      
     ],
   })
 })
+
+
+
+
+/// send ehet
+app.frame('/send', (c) => {
+  return c.res({
+    action: '/finish',
+    image: (
+      <div style={{ color: 'white', display: 'flex', fontSize: 60 }}>
+        Perform a transaction
+      </div>
+    ),
+    intents: [
+      <TextInput placeholder="Value (ETH)" />,
+      <Button.Transaction target="/send-ether">Send Ether</Button.Transaction>,
+      <Button.Transaction target="/mint">Mint</Button.Transaction>,
+      <Button.Mint
+      target="eip155:84532:0x060f3edd18c47f59bd23d063bbeb9aa4a8fec6df:69420"
+    >
+      Mint
+    </Button.Mint>,
+    ]
+  })
+})
+ 
+app.frame('/finish', (c) => {
+  const { transactionId } = c
+  return c.res({
+    image: (
+      <div style={{ color: 'white', display: 'flex', fontSize: 60 }}>
+        Transaction ID: {transactionId}
+      </div>
+    )
+  })
+})
+ 
+app.transaction('/send-ether', (c) => {
+  const { inputText } = c
+  // Send transaction response.
+    return c.send({
+      chainId: 'eip155:84532',
+      to: '0xd2135CfB216b74109775236E36d4b433F1DF507B',
+      value: parseEther(inputText || '0.0001'),
+    })
+})
+ 
+app.transaction('/mint', (c) => {
+  const { inputText } = c
+  // Contract transaction response.
+  return c.contract({
+    abi,
+    chainId: 'eip155:84532',
+    functionName: 'mint',
+    args: [69420n],
+    to: '0xd2135CfB216b74109775236E36d4b433F1DF507B',
+    value: parseEther(inputText|| '0.0001')
+  })
+})
+
+
 
 // @ts-ignore
 const isEdgeFunction = typeof EdgeFunction !== 'undefined'
